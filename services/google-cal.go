@@ -1,5 +1,7 @@
 package services
 
+//* NOTE: this file contains all setup and functions pertaining too google calendar api
+
 import (
 	"context"
 	"encoding/json"
@@ -99,12 +101,12 @@ func GetEventList() {
 	if len(events.Items) == 0 {
 		fmt.Println("No upcoming events found.")
 	} else {
-		for _, item := range events.Items {
+		for i, item := range events.Items {
 			date := item.Start.DateTime
 			if date == "" {
 				date = item.Start.Date
 			}
-			fmt.Printf("%v (%v)\n", item.Summary, date)
+			fmt.Printf("%d. %v (%v)\n", i+1, item.Summary, date)
 		}
 	}
 }
