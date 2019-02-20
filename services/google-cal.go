@@ -110,3 +110,29 @@ func GetEventList() {
 		}
 	}
 }
+
+//AddNewEvent takes in event text and adds it to calendar
+func AddNewEvent(eventText string) {
+	b, err := ioutil.ReadFile("credentials.json")
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
+	}
+
+	// If modifying these scopes, delete your previously saved token.json.
+	config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+	client := getClient(config)
+
+	// newEvent := calendar.Event{
+	// 	Created:     time.Now().String(),
+	// 	Description: eventText,
+	// }
+	srv, err := calendar.New(client)
+	if err != nil {
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
+	}
+	srv.Events.QuickAdd("primary", eventText)
+	// err1 := srv.Events.Insert("primary", newEvent)
+}
