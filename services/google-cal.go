@@ -80,7 +80,7 @@ func GetEventList() {
 	}
 
 	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, calendar.CalendarReadonlyScope)
+	config, err := google.ConfigFromJSON(b, calendar.CalendarEventsScope)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
@@ -125,6 +125,7 @@ func AddNewEvent(eventText string) {
 	}
 	client := getClient(config)
 
+	//! NOTE: this is commented out because currently only using QuickAdd function
 	// newEvent := calendar.Event{
 	// 	Created:     time.Now().String(),
 	// 	Description: eventText,
@@ -133,6 +134,16 @@ func AddNewEvent(eventText string) {
 	if err != nil {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
-	srv.Events.QuickAdd("primary", eventText)
-	// err1 := srv.Events.Insert("primary", newEvent)
+	newEvent := srv.Events.QuickAdd("primary", eventText)
+	_, err1 := newEvent.Do()
+	if err1 != nil {
+		panic(err1)
+	}
+	// calendar.EventsQuickAddCall(&newEvent) !! not sure if i need this ??
+	//! commented out because want QuickAdd function to be implemented first
+	// srv.Events.Insert("primary", &newEvent)
+	// if err1 != nil {
+	// 	panic(err1)
+	// }
+	fmt.Printf("New Event Created: %s", eventText)
 }
