@@ -147,3 +147,41 @@ func AddNewEvent(eventText string) {
 	// }
 	fmt.Printf("New Event Created: %s", eventText)
 }
+
+//RemoveEvent removes specified event from your calendar
+func RemoveEvent(eventName string) {
+	b, err := ioutil.ReadFile("credentials.json")
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
+	}
+
+	// If modifying these scopes, delete your previously saved token.json.
+	config, err := google.ConfigFromJSON(b, calendar.CalendarEventsScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+	client := getClient(config)
+
+	srv, err := calendar.New(client)
+	if err != nil {
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
+	}
+
+	t := time.Now().Format(time.RFC3339)
+	events, err := srv.Events.List("primary").ShowDeleted(false).
+		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
+	}
+
+	for _, e := range events.Items {
+		fmt.Println(e.Summary)
+		if e.Summary == eventName {
+			fmt.Println("Found it!")
+			srv.Events.Delete("primary", e.Id).Do()
+			fmt.Printf("Event: \"%s\" was successfully removed.", e.Summary)
+			return
+		}
+	}
+	fmt.Printf("EVENT: \"%s\" could not be found!", eventName)
+}
