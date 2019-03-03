@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -208,26 +207,26 @@ func RemoveEvent(eventName string) error {
 }
 
 //FindSingleItem returns information about specific event (if exists)
-func FindSingleItem(eventName string) {
+func FindSingleItem(eventName string) (string, error) {
 	srv := getService() // gets google cal service
-
-	t := time.Now().Format(time.RFC3339)
-	// event, err := srv.Events.Get("primary", ) NOTE: this requires you to pass id.. how(?)
-	events, err := srv.Events.List("primary").ShowDeleted(false).
-		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+	// use event map and get id
+	id, ok := eventMap[eventName]
+	// check to see if event was in map
+	if !ok {
+		fmt.Printf("EVENT: %s, not found in calendar.", eventName)
+		return "", nil //! returning out with err I assume
+	}
+	// get the event front google cal
+	eventObj, err := srv.Events.Get("primary", id).Do()
 	if err != nil {
-		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
+		return "", err
+	}
+	event, err := json.Marshal(eventObj)
+	if err != nil {
+		return "", err
 	}
 
-	for _, e := range events.Items {
-		if strings.ToLower(e.Summary) == strings.ToLower(eventName) {
-			desc := e.Description
-			if desc == "" {
-				desc = "{ There is no description for this event }"
-			}
-			fmt.Printf("Event Name  :  %s\nEvent Description  : %s\nStart Time  : %s\nEnd Time  : %s\n", e.Summary, desc, e.Start.DateTime, e.End.DateTime)
-			return
-		}
-	}
-	fmt.Printf("EVENT NOT FOUND: \"%s\" ", eventName)
+	fmt.Println(string(event))
+	// return the event json object
+	return string(event), nil
 }
