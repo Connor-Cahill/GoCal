@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/connor-cahill/goCal/services"
+	calevents "github.com/connor-cahill/goCal/services"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,7 @@ var findCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		event := strings.Join(args, " ")
 		// fmt.Println(event)
-		services.Find(event)
+		calevents.Find(event)
 	},
 }
 

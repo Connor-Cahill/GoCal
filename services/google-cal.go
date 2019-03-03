@@ -1,4 +1,4 @@
-package services
+package calevents
 
 //* NOTE: this file contains all setup and functions pertaining too google calendar api
 

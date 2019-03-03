@@ -4,13 +4,13 @@ import (
 	"log"
 
 	"github.com/connor-cahill/goCal/cmd"
-	"github.com/connor-cahill/goCal/services"
+	calevents "github.com/connor-cahill/goCal/services"
 )
 
 func main() {
 
 	// creates event map with event names, ids
-	startList, err := services.Index()
+	startList, err := calevents.Index()
 	if err != nil {
 		log.Fatalln(err)
 	}

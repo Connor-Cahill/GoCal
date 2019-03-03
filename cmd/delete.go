@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/connor-cahill/goCal/services"
+	calevents "github.com/connor-cahill/goCal/services"
 
 	"github.com/spf13/cobra"
 )
@@ -13,7 +13,7 @@ var deleteCmd = &cobra.Command{
 	Short: "Removes specific event from calendar.",
 	Run: func(cmd *cobra.Command, args []string) {
 		eventName := strings.Join(args, " ")
-		services.Remove(eventName)
+		calevents.Remove(eventName)
 	},
 }
 
