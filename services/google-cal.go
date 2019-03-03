@@ -107,42 +107,44 @@ func getService() *calendar.Service {
 
 //	creates a map of event name, event id key value pairs
 func createEventMap(eventName string, eventID string, eventMap map[string]string) {
-
 	// check if event name already exists in map
 	_, ok := eventMap[eventName]
 	// if NOT in map
 	if !ok {
 		eventMap[eventName] = eventID // add to map name, id
-		return
 	}
-	return // already in map, do nothing
+	return // break the function
 
 }
 
 //GetEventList prints list of events as function
 func GetEventList() ([]string, error) {
 	var eventSlice []string // empty slice for events
+	// gets the authorized cal service
 	srv := getService()
+	// gets the current time to assign as when to start looking for events
 	t := time.Now().Format(time.RFC3339)
+	// gets list of events from google cal package
 	events, err := srv.Events.List("primary").ShowDeleted(false).
 		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 		return nil, err
 	}
-	fmt.Println("Upcoming events:")
+	// check if no events
 	if len(events.Items) == 0 {
 		fmt.Println("No upcoming events found.")
 	} else {
 		for _, item := range events.Items {
+			// marshal the item
 			itm, err := json.Marshal(item)
 			if err != nil {
 				return nil, err
 			}
 			// create event map for summary, id pair
 			createEventMap(item.Summary, item.Id, eventMap)
+			// appaned marshalled event item into the event slice
 			eventSlice = append(eventSlice, string(itm))
-
 		}
 	}
 	return eventSlice, nil
