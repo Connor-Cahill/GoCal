@@ -8,6 +8,8 @@ func main() {
 	//* sets up CLI with cobra
 	err := cmd.RootCmd.Execute() // execute our CLI package
 	if err != nil {
+		// logs error
 		panic(err)
 	}
+
 }

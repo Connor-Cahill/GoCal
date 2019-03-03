@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -29,6 +30,15 @@ func getClient(config *oauth2.Config) *http.Client {
 		saveToken(tokFile, tok)
 	}
 	return config.Client(context.Background(), tok)
+}
+
+//timeIn converts time to local time of user
+func timeIn(t time.Time, tzName string) time.Time {
+	loc, err := time.LoadLocation(tzName)
+	if err != nil {
+		panic(err)
+	}
+	return t.In(loc)
 }
 
 // Request a token from the web, then returns the retrieved token.
@@ -72,8 +82,8 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-//GetEventList prints list of events as function
-func GetEventList() {
+// returns a google service
+func getService() *calendar.Service {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
@@ -91,6 +101,12 @@ func GetEventList() {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
 
+	return srv
+}
+
+//GetEventList prints list of events as function
+func GetEventList() {
+	srv := getService()
 	t := time.Now().Format(time.RFC3339)
 	events, err := srv.Events.List("primary").ShowDeleted(false).
 		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
@@ -102,70 +118,40 @@ func GetEventList() {
 		fmt.Println("No upcoming events found.")
 	} else {
 		for i, item := range events.Items {
-			date := item.Start.DateTime
-			if date == "" {
-				date = item.Start.Date
+			// date := item.Start.DateTime
+			// t, err := fmtdate.Parse("hh:mmpm", date)
+			if err != nil {
+				panic(err)
 			}
-			fmt.Printf("%d. %v (%v)\n", i+1, item.Summary, date)
+			// localTime := timeIn(t, "PST")
+			// hour := localTime.Hour()
+			// min := localTime.Minute()
+			// time := string(hour) + string(min)
+
+			fmt.Printf("%d. %v", i+1, item.Summary)
 		}
 	}
 }
 
-//AddNewEvent takes in event text and adds it to calendar
-func AddNewEvent(eventText string) {
-	b, err := ioutil.ReadFile("credentials.json")
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
+//AddEvent takes in an event info and adds to google cal
+// func AddEvent(summary string, description string, start time.Time, end time.Time, colorId string)
 
-	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := getClient(config)
+//QuickAddNewEvent takes in event text and adds it to calendar
+func QuickAddNewEvent(eventText string) {
+	srv := getService() // gets google cal service
 
-	//! NOTE: this is commented out because currently only using QuickAdd function
-	// newEvent := calendar.Event{
-	// 	Created:     time.Now().String(),
-	// 	Description: eventText,
-	// }
-	srv, err := calendar.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve Calendar client: %v", err)
-	}
 	newEvent := srv.Events.QuickAdd("primary", eventText)
 	_, err1 := newEvent.Do()
 	if err1 != nil {
 		panic(err1)
 	}
-	// calendar.EventsQuickAddCall(&newEvent) !! not sure if i need this ??
-	//! commented out because want QuickAdd function to be implemented first
-	// srv.Events.Insert("primary", &newEvent)
-	// if err1 != nil {
-	// 	panic(err1)
-	// }
+
 	fmt.Printf("New Event Created: %s", eventText)
 }
 
 //RemoveEvent removes specified event from your calendar
 func RemoveEvent(eventName string) {
-	b, err := ioutil.ReadFile("credentials.json")
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, calendar.CalendarEventsScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := getClient(config)
-
-	srv, err := calendar.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve Calendar client: %v", err)
-	}
+	srv := getService() // get google cal service
 
 	t := time.Now().Format(time.RFC3339)
 	events, err := srv.Events.List("primary").ShowDeleted(false).
@@ -188,24 +174,10 @@ func RemoveEvent(eventName string) {
 
 //FindSingleItem returns information about specific event (if exists)
 func FindSingleItem(eventName string) {
-	b, err := ioutil.ReadFile("credentials.json")
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, calendar.CalendarEventsScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := getClient(config)
-
-	srv, err := calendar.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve Calendar client: %v", err)
-	}
+	srv := getService() // gets google cal service
 
 	t := time.Now().Format(time.RFC3339)
+	// event, err := srv.Events.Get("primary", ) NOTE: this requires you to pass id.. how(?)
 	events, err := srv.Events.List("primary").ShowDeleted(false).
 		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
 	if err != nil {
@@ -213,12 +185,14 @@ func FindSingleItem(eventName string) {
 	}
 
 	for _, e := range events.Items {
-		if e.Summary == eventName {
+		if strings.ToLower(e.Summary) == strings.ToLower(eventName) {
 			desc := e.Description
 			if desc == "" {
 				desc = "{ There is no description for this event }"
 			}
-			fmt.Printf("Event Name  :  %s\nEvent Description  : %s\nStart Time  : %s\nEnd Time  : %s\n", e.Summary, desc, e.Start, e.End)
+			fmt.Printf("Event Name  :  %s\nEvent Description  : %s\nStart Time  : %s\nEnd Time  : %s\n", e.Summary, desc, e.Start.DateTime, e.End.DateTime)
+			return
 		}
 	}
+	fmt.Printf("EVENT NOT FOUND: \"%s\" ", eventName)
 }
