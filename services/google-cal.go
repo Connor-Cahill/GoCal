@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -107,17 +108,17 @@ func getService() *calendar.Service {
 //	creates a map of event name, event id key value pairs
 func createEventMap(eventName string, eventID string, eventMap map[string]string) {
 	// check if event name already exists in map
-	_, ok := eventMap[eventName]
+	_, ok := eventMap[strings.ToLower(eventName)]
 	// if NOT in map
 	if !ok {
-		eventMap[eventName] = eventID // add to map name, id
+		eventMap[strings.ToLower(eventName)] = eventID // add to map name, id
 	}
 	return // break the function
 
 }
 
-//GetEventList prints list of events as function
-func GetEventList() ([]string, error) {
+//Index returns slice of all upcoming event objects
+func Index() ([]string, error) {
 	var eventSlice []string // empty slice for events
 	// gets the authorized cal service
 	srv := getService()
@@ -149,8 +150,8 @@ func GetEventList() ([]string, error) {
 	return eventSlice, nil
 }
 
-//AddEvent takes in an event info and adds to google cal
-func AddEvent(summary string, description string, start string, end string, colorId string) {
+//Add takes in an event info and adds to google cal
+func Add(summary string, description string, start string, end string, colorID string) {
 	// srv := getService() // gets google service
 
 	//event struct to be used for calendar insert call
@@ -175,8 +176,8 @@ func AddEvent(summary string, description string, start string, end string, colo
 	// srv.Events.Insert("primary")
 }
 
-//QuickAddNewEvent takes in event text and adds it to calendar
-func QuickAddNewEvent(eventText string) {
+//QuickAdd takes a string and adds an hour event at current time
+func QuickAdd(eventText string) {
 	srv := getService() // gets google cal service
 
 	newEvent := srv.Events.QuickAdd("primary", eventText)
@@ -188,12 +189,12 @@ func QuickAddNewEvent(eventText string) {
 	fmt.Printf("New Event Created: %s", eventText)
 }
 
-//RemoveEvent removes specified event from your calendar
-func RemoveEvent(eventName string) error {
+//Remove removes specified event from your calendar
+func Remove(eventName string) error {
 	srv := getService() // get google cal service
 
 	// find id using eventMap and inputted name
-	id, ok := eventMap[eventName]
+	id, ok := eventMap[strings.ToLower(eventName)]
 	if !ok {
 		fmt.Printf("%s not in calendar", eventName)
 	}
@@ -206,11 +207,11 @@ func RemoveEvent(eventName string) error {
 	return nil // no error return nothing
 }
 
-//FindSingleItem returns information about specific event (if exists)
-func FindSingleItem(eventName string) (string, error) {
+//Find returns information about specific event (if exists)
+func Find(eventName string) (string, error) {
 	srv := getService() // gets google cal service
 	// use event map and get id
-	id, ok := eventMap[eventName]
+	id, ok := eventMap[strings.ToLower(eventName)]
 	// check to see if event was in map
 	if !ok {
 		fmt.Printf("EVENT: %s, not found in calendar.", eventName)

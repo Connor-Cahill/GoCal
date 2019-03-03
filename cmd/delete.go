@@ -13,7 +13,7 @@ var deleteCmd = &cobra.Command{
 	Short: "Removes specific event from calendar.",
 	Run: func(cmd *cobra.Command, args []string) {
 		eventName := strings.Join(args, " ")
-		services.RemoveEvent(eventName)
+		services.Remove(eventName)
 	},
 }
 

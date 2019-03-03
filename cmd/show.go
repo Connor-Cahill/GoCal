@@ -9,7 +9,7 @@ var showCmd = &cobra.Command{
 	Use:   "show",
 	Short: "prints all upcoming events to terminal",
 	Run: func(cmd *cobra.Command, args []string) {
-		services.GetEventList()
+		services.Index()
 	},
 }
 

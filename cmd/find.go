@@ -13,7 +13,7 @@ var findCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		event := strings.Join(args, " ")
 		// fmt.Println(event)
-		services.FindSingleItem(event)
+		services.Find(event)
 	},
 }
 
