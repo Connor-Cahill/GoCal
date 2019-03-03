@@ -190,26 +190,21 @@ func QuickAddNewEvent(eventText string) {
 }
 
 //RemoveEvent removes specified event from your calendar
-func RemoveEvent(eventName string) {
+func RemoveEvent(eventName string) error {
 	srv := getService() // get google cal service
 
-	t := time.Now().Format(time.RFC3339)
-	events, err := srv.Events.List("primary").ShowDeleted(false).
-		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+	// find id using eventMap and inputted name
+	id, ok := eventMap[eventName]
+	if !ok {
+		fmt.Printf("%s not in calendar", eventName)
+	}
+	//	use id to delete event name
+	err := srv.Events.Delete("primary", id).Do()
 	if err != nil {
-		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
+		return err
 	}
-
-	//	iterate through every event in events list
-	for _, e := range events.Items {
-		fmt.Println(e.Summary)
-		if e.Summary == eventName { // if event summary equals inputted event name
-			srv.Events.Delete("primary", e.Id).Do() // delete item from calendar
-			fmt.Printf("Event: \"%s\" was successfully removed.", e.Summary)
-			return // break the function
-		}
-	}
-	fmt.Printf("EVENT: \"%s\" could not be found!", eventName) // no event was found matching inputted name
+	fmt.Printf("Event: %s, was successfully deleted!", eventName)
+	return nil // no error return nothing
 }
 
 //FindSingleItem returns information about specific event (if exists)
