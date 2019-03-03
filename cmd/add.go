@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/connor-cahill/goCal/services"
-
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +15,7 @@ var addCmd = &cobra.Command{
 		// description := []byte(*desc)
 		description := strings.Join(args, " ")
 		fmt.Println(description)
-		services.AddNewEvent(description)
+		// services.AddNewEvent(description)
 	},
 }
 

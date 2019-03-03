@@ -18,6 +18,9 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
+//* Map for users event names, id (key, value pair)
+var eventMap = make(map[string]string) // event name, event Id
+
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
@@ -86,9 +89,8 @@ func saveToken(path string, token *oauth2.Token) {
 func getService() *calendar.Service {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
+		log.Fatalln(err)
 	}
-
 	// If modifying these scopes, delete your previously saved token.json.
 	config, err := google.ConfigFromJSON(b, calendar.CalendarEventsScope)
 	if err != nil {
@@ -100,41 +102,77 @@ func getService() *calendar.Service {
 	if err != nil {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
+	return srv // returns the authorized analytics service
+}
 
-	return srv
+//	creates a map of event name, event id key value pairs
+func createEventMap(eventName string, eventID string, eventMap map[string]string) {
+
+	// check if event name already exists in map
+	_, ok := eventMap[eventName]
+	// if NOT in map
+	if !ok {
+		eventMap[eventName] = eventID // add to map name, id
+		return
+	}
+	return // already in map, do nothing
+
 }
 
 //GetEventList prints list of events as function
-func GetEventList() {
+func GetEventList() ([]string, error) {
+	var eventSlice []string // empty slice for events
 	srv := getService()
 	t := time.Now().Format(time.RFC3339)
 	events, err := srv.Events.List("primary").ShowDeleted(false).
 		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
+		return nil, err
 	}
 	fmt.Println("Upcoming events:")
 	if len(events.Items) == 0 {
 		fmt.Println("No upcoming events found.")
 	} else {
-		for i, item := range events.Items {
-			// date := item.Start.DateTime
-			// t, err := fmtdate.Parse("hh:mmpm", date)
+		for _, item := range events.Items {
+			itm, err := json.Marshal(item)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
-			// localTime := timeIn(t, "PST")
-			// hour := localTime.Hour()
-			// min := localTime.Minute()
-			// time := string(hour) + string(min)
+			// create event map for summary, id pair
+			createEventMap(item.Summary, item.Id, eventMap)
+			eventSlice = append(eventSlice, string(itm))
 
-			fmt.Printf("%d. %v", i+1, item.Summary)
 		}
 	}
+	return eventSlice, nil
 }
 
 //AddEvent takes in an event info and adds to google cal
-// func AddEvent(summary string, description string, start time.Time, end time.Time, colorId string)
+func AddEvent(summary string, description string, start string, end string, colorId string) {
+	// srv := getService() // gets google service
+
+	//event struct to be used for calendar insert call
+	type eventObj struct {
+		summary     string    // title of event
+		description string    // description
+		start       time.Time // start time of event
+		end         time.Time // end time of event
+		colorID     string    // color of event card
+	}
+
+	// TODO:
+	// 1. parse the start and end time to be added into event struct
+	// 2. finish this event var
+	// 3. send event through Events.Insert call
+
+	// var event = eventObj{
+	// 	summary:     summary,
+	// 	description: description,
+	// }
+
+	// srv.Events.Insert("primary")
+}
 
 //QuickAddNewEvent takes in event text and adds it to calendar
 func QuickAddNewEvent(eventText string) {
