@@ -9,16 +9,14 @@ import (
 
 func main() {
 
+	// creates the event name, id map
+	calevents.MakeIDMap()
 	// creates event map with event names, ids
-	err := calevents.MakeIDMap()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	calevents.UpdateMap()
 
 	//* sets up CLI with cobra
-	err = cmd.RootCmd.Execute() // execute our CLI package
+	err := cmd.RootCmd.Execute() // execute our CLI package
 	if err != nil {
 		log.Fatalln(err)
 	}
-
 }

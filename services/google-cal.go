@@ -20,6 +20,9 @@ import (
 
 //* Map for users event names, id (key, value pair)
 var eventMap = make(map[string]string) // event name, event Id
+// channel that recieves the map of event names, id
+var idMapCh = make(chan map[string]string)
+var mapReady = make(chan bool)
 
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
@@ -120,25 +123,39 @@ func createEventMap(eventName string, eventID string, eventMap map[string]string
 //MakeIDMap makes map of event name, id pairs
 // is a gouroutine that runs in the background every
 // n minutes
-func MakeIDMap() error {
+func MakeIDMap() {
 	var nameIDMap = make(map[string]string)
 	srv := getService() // gets authorized cal service
 	// grab current time to start look from
 	t := time.Now().Format(time.RFC3339)
-	// get list of events
-	events, err := srv.Events.List("primary").ShowDeleted(false).SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
-	if err != nil {
-		log.Fatalln(err)
-		return err
-	}
-	// loop over items and create map
-	for _, item := range events.Items {
-		// creates the map
-		createEventMap(item.Summary, item.Id, nameIDMap)
-	}
-	// returns the name, id map
-	eventMap = nameIDMap
-	return nil
+
+	go func() {
+		fmt.Println("Something is happening")
+		// get list of events
+		events, err := srv.Events.List("primary").ShowDeleted(false).SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		// loop over items and create map
+		for _, item := range events.Items {
+			// creates the map
+			createEventMap(item.Summary, item.Id, nameIDMap)
+		}
+		// sends the nameIDMap throught the idMapCh
+		idMapCh <- nameIDMap // sends new map to idMapCh
+	}()
+
+}
+
+//UpdateMap is a goroutine that keeps the event, id map updated
+// it reads from the idMapCh
+func UpdateMap() {
+	go func() {
+		eMap := <-idMapCh
+		eventMap = eMap // updates the global event map
+		fmt.Println("DONE!", eventMap)
+		mapReady <- true
+	}()
 }
 
 //Index returns slice of all upcoming event objects
@@ -213,6 +230,7 @@ func QuickAdd(eventText string) {
 
 //Remove removes specified event from your calendar
 func Remove(eventName string) error {
+	<-mapReady          // blocks from being called until idMap is created
 	srv := getService() // get google cal service
 
 	// find id using eventMap and inputted name
@@ -231,6 +249,7 @@ func Remove(eventName string) error {
 
 //Find returns information about specific event (if exists)
 func Find(eventName string) (string, error) {
+	<-mapReady          // blocks this from being called until idMap is created
 	srv := getService() // gets google cal service
 	// use event map and get id
 	id, ok := eventMap[strings.ToLower(eventName)]
