@@ -117,6 +117,30 @@ func createEventMap(eventName string, eventID string, eventMap map[string]string
 
 }
 
+//MakeIDMap makes map of event name, id pairs
+// is a gouroutine that runs in the background every
+// n minutes
+func MakeIDMap() error {
+	var nameIDMap = make(map[string]string)
+	srv := getService() // gets authorized cal service
+	// grab current time to start look from
+	t := time.Now().Format(time.RFC3339)
+	// get list of events
+	events, err := srv.Events.List("primary").ShowDeleted(false).SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+	if err != nil {
+		log.Fatalln(err)
+		return err
+	}
+	// loop over items and create map
+	for _, item := range events.Items {
+		// creates the map
+		createEventMap(item.Summary, item.Id, nameIDMap)
+	}
+	// returns the name, id map
+	eventMap = nameIDMap
+	return nil
+}
+
 //Index returns slice of all upcoming event objects
 func Index() ([]string, error) {
 	var eventSlice []string // empty slice for events
@@ -141,8 +165,6 @@ func Index() ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
-			// create event map for summary, id pair
-			createEventMap(item.Summary, item.Id, eventMap)
 			// appaned marshalled event item into the event slice
 			eventSlice = append(eventSlice, string(itm))
 		}

@@ -10,11 +10,10 @@ import (
 func main() {
 
 	// creates event map with event names, ids
-	startList, err := calevents.Index()
+	err := calevents.MakeIDMap()
 	if err != nil {
 		log.Fatalln(err)
 	}
-	_ = startList // creates the initial event map
 
 	//* sets up CLI with cobra
 	err = cmd.RootCmd.Execute() // execute our CLI package
