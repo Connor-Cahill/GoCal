@@ -130,7 +130,6 @@ func MakeIDMap() {
 	t := time.Now().Format(time.RFC3339)
 
 	go func() {
-		fmt.Println("Something is happening")
 		// get list of events
 		events, err := srv.Events.List("primary").ShowDeleted(false).SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
 		if err != nil {
@@ -153,14 +152,13 @@ func UpdateMap() {
 	go func() {
 		eMap := <-idMapCh
 		eventMap = eMap // updates the global event map
-		fmt.Println("DONE!", eventMap)
 		mapReady <- true
 	}()
 }
 
 //Index returns slice of all upcoming event objects
-func Index() ([]string, error) {
-	var eventSlice []string // empty slice for events
+func Index() ([][]byte, error) {
+	var eventSlice [][]byte // empty slice for events
 	// gets the authorized cal service
 	srv := getService()
 	// gets the current time to assign as when to start looking for events
@@ -183,7 +181,7 @@ func Index() ([]string, error) {
 				return nil, err
 			}
 			// appaned marshalled event item into the event slice
-			eventSlice = append(eventSlice, string(itm))
+			eventSlice = append(eventSlice, itm)
 		}
 	}
 	return eventSlice, nil
@@ -268,7 +266,6 @@ func Find(eventName string) (string, error) {
 		return "", err
 	}
 
-	fmt.Println(string(event))
 	// return the event json object
 	return string(event), nil
 }
