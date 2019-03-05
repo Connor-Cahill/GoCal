@@ -170,12 +170,21 @@ func Index() ([][]byte, error) {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 		return nil, err
 	}
+	type ItemTime struct {
+		DateTime time.Time `json:"dateTime"`
+	}
+	// var startObj ItemTime
+	// var endObj ItemTime
 	// check if no events
 	if len(events.Items) == 0 {
 		fmt.Println("No upcoming events found.")
 	} else {
 		for _, item := range events.Items {
-			// marshal the item
+			// s, _ := item.Start.MarshalJSON()
+			// e, _ := item.End.MarshalJSON()
+			// json.Unmarshal(e, &endObj)
+			// json.Unmarshal(s, &startObj)
+
 			itm, err := json.Marshal(item)
 			if err != nil {
 				return nil, err
@@ -200,17 +209,6 @@ func Add(summary string, description string, start string, end string, colorID s
 		colorID     string    // color of event card
 	}
 
-	// TODO:
-	// 1. parse the start and end time to be added into event struct
-	// 2. finish this event var
-	// 3. send event through Events.Insert call
-
-	// var event = eventObj{
-	// 	summary:     summary,
-	// 	description: description,
-	// }
-
-	// srv.Events.Insert("primary")
 }
 
 //QuickAdd takes a string and adds an hour event at current time
@@ -235,18 +233,19 @@ func Remove(eventName string) error {
 	id, ok := eventMap[strings.ToLower(eventName)]
 	if !ok {
 		fmt.Printf("%s not in calendar", eventName)
+		err := srv.Events.Delete("primary", id).Do()
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Event: %s, was successfully deleted!", eventName)
+		return nil // no error return nothing
 	}
-	//	use id to delete event name
-	err := srv.Events.Delete("primary", id).Do()
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Event: %s, was successfully deleted!", eventName)
-	return nil // no error return nothing
+	fmt.Println("event not in calendar")
+	return nil
 }
 
 //Find returns information about specific event (if exists)
-func Find(eventName string) (string, error) {
+func Find(eventName string) ([]byte, error) {
 	<-mapReady          // blocks this from being called until idMap is created
 	srv := getService() // gets google cal service
 	// use event map and get id
@@ -254,18 +253,18 @@ func Find(eventName string) (string, error) {
 	// check to see if event was in map
 	if !ok {
 		fmt.Printf("EVENT: %s, not found in calendar.", eventName)
-		return "", nil //! returning out with err I assume
+		return nil, nil //! returning out with err I assume
 	}
 	// get the event front google cal
 	eventObj, err := srv.Events.Get("primary", id).Do()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	event, err := json.Marshal(eventObj)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// return the event json object
-	return string(event), nil
+	return event, nil
 }
