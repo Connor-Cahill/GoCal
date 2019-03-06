@@ -41,16 +41,13 @@ var showCmd = &cobra.Command{
 				log.Fatalln(err)
 			}
 			if event.Start.Time == "" {
-				fmt.Println("BREAKING:  ", event.Summary)
-
+                fmt.Printf("%d. %s -- All Day Event", i + 1, event.Summary)
 			} else {
 				st := strings.Split(event.Start.Time, "-")
 				et := strings.Split(event.End.Time, "-")
 				_ = i
 				st = st[:len(st)-1]
 				et = et[:len(et)-1]
-				fmt.Println(event.Start.Time)
-				fmt.Println(strings.Join(st, "-"))
 				sTime, err := time.Parse("2006-01-02T15:04:05", strings.Join(st, "-"))
 				if err != nil {
 					log.Fatalln(err)
@@ -62,16 +59,21 @@ var showCmd = &cobra.Command{
 				var startTime []int
 				var endTime []int
 				hr, min, _ := sTime.Clock()
+                if hr > 12 {
+                    hr -= 12
+                }
 				startTime = append(startTime, hr)
 				startTime = append(startTime, min)
 				hr, min, _ = eTime.Clock()
+				if hr > 12 {
+                    hr -= 12
+                }
 				endTime = append(endTime, hr)
 				endTime = append(endTime, min)
-				fmt.Println(startTime)
-				fmt.Println(endTime)
-				fmt.Println("===========================")
+                starting := strings.Trim(strings.Join(strings.Split(fmt.Sprint(startTime), " "), ":"), "[]")
+                ending := strings.Trim(strings.Join(strings.Split(fmt.Sprint(endTime), " "), ":"), "[]")
 				// prints 1. EventSummary
-				// fmt.Printf("%d. %s\n STARTS AT: %s - ENDS AT: %s\n", i+1, event.Summary, start, end)
+				fmt.Printf("%d. %s -- %s - %s\n", i+1, event.Summary, starting, ending)
 			}
 		}
 	},
