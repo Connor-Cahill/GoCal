@@ -36,18 +36,23 @@ var showCmd = &cobra.Command{
 		// list of events to print to terminal
 		// var eventList []Event
 		for i, e := range events {
+		    // unmarshal json into event struct
 			err = json.Unmarshal(e, &event)
 			if err != nil {
 				log.Fatalln(err)
 			}
+			// check if time field is empty 
 			if event.Start.Time == "" {
+			    // skip all time parsing stuff
                 fmt.Printf("%d. %s -- All Day Event", i + 1, event.Summary)
 			} else {
+			    // split the time strings at - 
 				st := strings.Split(event.Start.Time, "-")
 				et := strings.Split(event.End.Time, "-")
-				_ = i
+				// remove the last part of the time string 
 				st = st[:len(st)-1]
 				et = et[:len(et)-1]
+				// parse the time strings into a time.Time
 				sTime, err := time.Parse("2006-01-02T15:04:05", strings.Join(st, "-"))
 				if err != nil {
 					log.Fatalln(err)
@@ -58,18 +63,23 @@ var showCmd = &cobra.Command{
 				}
 				var startTime []int
 				var endTime []int
+				// Get the hour and minute 
 				hr, min, _ := sTime.Clock()
+				// if hour is greater than 12 subtract 12
                 if hr > 12 {
                     hr -= 12
                 }
+                // append pieces of time to slice 
 				startTime = append(startTime, hr)
 				startTime = append(startTime, min)
+				// Same as above but for the ending time
 				hr, min, _ = eTime.Clock()
 				if hr > 12 {
                     hr -= 12
                 }
 				endTime = append(endTime, hr)
 				endTime = append(endTime, min)
+                // joins the slice of ints into a string formatted hh:mm
                 starting := strings.Trim(strings.Join(strings.Split(fmt.Sprint(startTime), " "), ":"), "[]")
                 ending := strings.Trim(strings.Join(strings.Split(fmt.Sprint(endTime), " "), ":"), "[]")
 				// prints 1. EventSummary
