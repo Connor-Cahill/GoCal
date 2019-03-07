@@ -20,10 +20,10 @@ import (
 
 //* Map for users event names, id (key, value pair)
 var eventMap = make(map[string]string) // event name, event Id
-var deleteMap = make(map[string]string) // aligns with the Index() indexes
+var deleteMap = make(map[int]string) // aligns with the Index() indexes
 // channel that recieves the map of event names, id
 var idMapCh = make(chan map[string]string)
-var deleteMapCh = make(chan map[string]string)
+var deleteMapCh = make(chan map[int]string)
 var mapReady = make(chan bool)
 
 //getClient Retrieve a token, saves the token, then returns the generated client.
@@ -127,7 +127,7 @@ func createEventMap(eventName string, eventID string, eventMap map[string]string
 // n minutes
 func MakeIDMap() {
 	var nameIDMap = make(map[string]string)
-	var indexIDMap = make(map[string]string)
+	var indexIDMap = make(map[int]string)
 	srv := getService() // gets authorized cal service
 	// grab current time to start look from
 	t := time.Now().Format(time.RFC3339)
@@ -143,8 +143,7 @@ func MakeIDMap() {
 			// creates the map for title, id pair
 			createEventMap(item.Summary, item.Id, nameIDMap)
 			// creates map for index, id pairs (delete method)
-			createEventMap(string(i + 1), item.Id,indexIDMap)
-
+            indexIDMap[i + 1] = item.Id // add indx and id to map
 		}
 		// sends the nameIDMap throught the idMapCh
 		idMapCh <- nameIDMap // sends new map to idMapCh
@@ -246,7 +245,7 @@ func QuickAdd(eventText string) {
 
 //DeleteItem allows user to delete events
 //by inputting index equal to the show command
-func DeleteItem(index string) error{
+func DeleteItem(index int) error{
     <-mapReady
     srv := getService()
     // find id using map of index, ids
