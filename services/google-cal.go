@@ -20,11 +20,13 @@ import (
 
 //* Map for users event names, id (key, value pair)
 var eventMap = make(map[string]string) // event name, event Id
+var deleteMap = make(map[string]string) // aligns with the Index() indexes
 // channel that recieves the map of event names, id
 var idMapCh = make(chan map[string]string)
+var deleteMapCh = make(chan map[string]string)
 var mapReady = make(chan bool)
 
-// Retrieve a token, saves the token, then returns the generated client.
+//getClient Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
@@ -125,6 +127,7 @@ func createEventMap(eventName string, eventID string, eventMap map[string]string
 // n minutes
 func MakeIDMap() {
 	var nameIDMap = make(map[string]string)
+	var indexIDMap = make(map[string]string)
 	srv := getService() // gets authorized cal service
 	// grab current time to start look from
 	t := time.Now().Format(time.RFC3339)
@@ -136,12 +139,16 @@ func MakeIDMap() {
 			log.Fatalln(err)
 		}
 		// loop over items and create map
-		for _, item := range events.Items {
-			// creates the map
+		for i, item := range events.Items {
+			// creates the map for title, id pair
 			createEventMap(item.Summary, item.Id, nameIDMap)
+			// creates map for index, id pairs (delete method)
+			createEventMap(string(i + 1), item.Id,indexIDMap)
+
 		}
 		// sends the nameIDMap throught the idMapCh
 		idMapCh <- nameIDMap // sends new map to idMapCh
+		deleteMapCh <- indexIDMap // sends index, id pair map 
 	}()
 
 }
@@ -152,6 +159,7 @@ func UpdateMap() {
 	go func() {
 		eMap := <-idMapCh
 		eventMap = eMap // updates the global event map
+		deleteMap = <- deleteMapCh // sends map through channel
 		mapReady <- true
 	}()
 }
@@ -180,11 +188,6 @@ func Index() ([][]byte, error) {
 		fmt.Println("No upcoming events found.")
 	} else {
 		for _, item := range events.Items {
-			// s, _ := item.Start.MarshalJSON()
-			// e, _ := item.End.MarshalJSON()
-			// json.Unmarshal(e, &endObj)
-			// json.Unmarshal(s, &startObj)
-
 			itm, err := json.Marshal(item)
 			if err != nil {
 				return nil, err
@@ -196,10 +199,23 @@ func Index() ([][]byte, error) {
 	return eventSlice, nil
 }
 
+//FixTime takes in user inputted time string
+// and converts it to a time.Time object that 
+// Add function will take in 
+func FixTime(timeStr string) (time.Time, error){
+    var realTime time.Time // return this
+    // First Attempt: Try to parse string straight into ISO time layout
+    realTime, err := time.Parse("2006-01-02T15:04:05", timeStr)
+    if err != nil {
+        // returns empty time struct and error 
+        return time.Time{}, err
+    }
+    return realTime, nil
+}
+
 //Add takes in an event info and adds to google cal
 func Add(summary string, description string, start string, end string, colorID string) {
-	// srv := getService() // gets google service
-
+	//srv := getService() // gets google service
 	//event struct to be used for calendar insert call
 	type eventObj struct {
 		summary     string    // title of event
@@ -208,7 +224,9 @@ func Add(summary string, description string, start string, end string, colorID s
 		end         time.Time // end time of event
 		colorID     string    // color of event card
 	}
-
+    curTime := time.Now()
+    fmt.Println(curTime)    	
+    return
 }
 
 //QuickAdd takes a string and adds an hour event at current time
@@ -222,6 +240,26 @@ func QuickAdd(eventText string) {
 	}
 
 	fmt.Printf("New Event Created: %s", eventText)
+	MakeIDMap()
+	UpdateMap()
+}
+
+//DeleteItem allows user to delete events
+//by inputting index equal to the show command
+func DeleteItem(index string) error{
+    <-mapReady
+    srv := getService()
+    // find id using map of index, ids
+    id, ok := deleteMap[index]
+    if !ok {
+        fmt.Printf("Error finding event.")
+    }
+    err := srv.Events.Delete("primary", id).Do()
+    if err != nil {
+        return err
+    }
+    fmt.Println("Item was successfully deleted")
+    return nil // no error 
 }
 
 //Remove removes specified event from your calendar
