@@ -40,6 +40,23 @@ func getClient(config *oauth2.Config) *http.Client {
 	return config.Client(context.Background(), tok)
 }
 
+//AuthUser sends request to google to create JWT token for user
+func AuthUser() (error){
+    tokFile := "token.json"
+    data, err := ioutil.ReadFile(tokFile)
+    if err != nil {
+        return err
+    }
+    conf, err := google.JWTConfigFromJSON(data, "https://www.googleapis.com/auth/calendar")
+    if err != nil {
+        return err
+    }
+    fmt.Println(conf)
+    client := conf.Client(oauth2.NoContext) 
+    fmt.Println(client)
+    return nil
+}
+
 //timeIn converts time to local time of user
 func timeIn(t time.Time, tzName string) time.Time {
 	loc, err := time.LoadLocation(tzName)
